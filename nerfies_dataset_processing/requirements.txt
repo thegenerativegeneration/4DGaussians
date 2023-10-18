@@ -1,0 +1,6 @@
+numpy==1.19.3
+mediapipe
+tensorflow_graphics
+git+https://github.com/google/nerfies.git@v2
+git+https://github.com/google/nerfies.git#egg=pycolmap&subdirectory=third_party/pycolmap
+ffmpeg-python

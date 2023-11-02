@@ -357,6 +357,19 @@ def format_infos(dataset,split):
 
     return cameras
 
+def generate_random_pointcloud(num_pts, threshold, ply_path):
+    # xyz_max = np.array([1.5*threshold, 1.5*threshold, 1.5*threshold])
+    # xyz_min = np.array([-1.5*threshold, -1.5*threshold, -3*threshold])
+    xyz_max = np.array([1.5*threshold, 1.5*threshold, 1.5*threshold])
+    xyz_min = np.array([-1.5*threshold, -1.5*threshold, -1.5*threshold])
+    # We create random points inside the bounds of the synthetic Blender scenes
+    xyz = (np.random.random((num_pts, 3)))* (xyz_max-xyz_min) + xyz_min
+    print("point cloud initialization:",xyz.max(axis=0),xyz.min(axis=0))
+    shs = np.random.random((num_pts, 3)) / 255.0
+    xyz = xyz.astype(np.float32)
+    pcd = BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3)))
+    #storePly(ply_path, xyz, SH2RGB(shs) * 255)
+    return pcd
 
 def readHyperDataInfos(datadir,use_bg_points,eval):
     train_cam_infos = Load_hyper_data(datadir,0.5,use_bg_points,split ="train")
@@ -368,13 +381,17 @@ def readHyperDataInfos(datadir,use_bg_points,eval):
     video_cam_infos.split="video"
 
     ply_path = os.path.join(datadir, "points.npy")
+    if os.path.exists(ply_path):
+        xyz = np.load(ply_path,allow_pickle=True)
+        xyz -= train_cam_infos.scene_center
+        xyz *= train_cam_infos.coord_scale
+        xyz = xyz.astype(np.float32)
+        shs = np.random.random((xyz.shape[0], 3)) / 255.0
+        pcd = BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((xyz.shape[0], 3)))
+    else:
+        pcd = generate_random_pointcloud(2000, 3, ply_path)
 
-    xyz = np.load(ply_path,allow_pickle=True)
-    xyz -= train_cam_infos.scene_center
-    xyz *= train_cam_infos.coord_scale
-    xyz = xyz.astype(np.float32)
-    shs = np.random.random((xyz.shape[0], 3)) / 255.0
-    pcd = BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((xyz.shape[0], 3)))
+    print("dtype:",pcd.points.dtype)
 
 
     nerf_normalization = getNerfppNorm(train_cam)
